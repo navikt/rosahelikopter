@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
     for org_name in desired_orgs:
         repos = get_repos_of_org(org_name, authorization_token)
-        orgs[org_name] = {r['name']: dict(gh_data=r) for r in repos}
+        orgs[org_name] = {r['name']: r for r in repos}
 
         for repo_name, repo in orgs[org_name].items():
             with contextlib.suppress(KeyError):
@@ -51,7 +51,7 @@ if __name__ == '__main__':
                     repo_name=repo_name,
                     org_name=org_name,
                     file_path='CODEOWNERS',
-                    ref_name=repo['gh_data']['default_branch'],
+                    ref_name=repo['default_branch'],
                 )
 
     print(json.dumps(orgs, indent=2))
