@@ -8,5 +8,9 @@ NB: Ensure you have a valid Github access token with all `repo` scope-permission
 This token must be available as the environment variable `GITHUB_USER_TOKEN` while running the python scripts.
 
 Then, run:
-
-pipenv run ./fetch_from_github.py | pipenv run ./generate_markdown.py | multimarkdown > test.html
+```bash
+$ pipenv run ./fetch_from_github.py \
+  | pipenv run ./generate_markdown.py \
+  | multimarkdown > test.html
+$ open test.html
+```
