@@ -26,12 +26,9 @@ def read_repo_file(repo_name, org_name, file_path, *, ref_name='master'):
         ),
         params=dict(ref=ref_name),
     )
-    # print(response.text, file=sys.stderr)
     if response.status_code == 404:
         raise KeyError(f"'{file_path}' not found in '{org_name}/{repo_name}@{ref_name}'")
     return response.text
-
-
 
 
 if __name__ == '__main__':
@@ -44,7 +41,6 @@ if __name__ == '__main__':
     desired_orgs = ('navikt', 'nais')
     orgs = {}
 
-    #repos['org']['name'] = { codeowners: 'foo', gh_data: json_data, ... }
     for org_name in desired_orgs:
         repos = get_repos_of_org(org_name, authorization_token)
         orgs[org_name] = {r['name']: dict(gh_data=r) for r in repos}
@@ -59,30 +55,3 @@ if __name__ == '__main__':
                 )
 
     print(json.dumps(orgs, indent=2))
-    sys.exit(0)
-
-    repos_with_description = [r for r in repos if r['description'] is not None]
-    print(f"Total repos found: {len(repos)}, of which {len(repos_with_description)} have description!", file=sys.stderr)
-
-    all_repos['repos'], all_repos['repos_with_description'] = repos, repos_with_description
-
-    repos_with_codeowners = list()
-    for repo in repos:
-        with contextlib.suppress(KeyError):
-            repo['CODEOWNERS'] = read_repo_file(
-                repo_name=repo['name'],
-                org_name=repo['owner']['login'],
-                file_path='CODEOWNERS',
-                ref_name=repo['default_branch'],
-            )
-            repos_with_codeowners.append(repo)
-    print(f"{len(repos_with_codeowners)} repos with CODEOWNERS file in root!")
-
-    aura_repos = [r for r in repos_with_codeowners if 'navikt/aura' in r.get('CODEOWNERS', '')]
-    # print(*[r['name'] for r in aura_repos], sep='\n')
-    aura_owned_repos_with_description = {
-        f"{repo['owner']['login']}/{repo['name']}": repo.get('description', None)
-        for repo in aura_repos
-    }
-
-    print(json.dumps(aura_owned_repos_with_description, indent=2))
