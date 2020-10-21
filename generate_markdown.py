@@ -34,7 +34,7 @@ if __name__ == '__main__':
     doc_body = textwrap.dedent('''\
     # Helikopteroversikt
 
-    Dette er en oversikt over repositories med enten `navikt/aura` eller `nais/aura` i sin CODEOWNERS.
+    Dette er en oversikt over repositories med enten `navikt/aura` eller `nais/aura` i sin [`CODEOWNERS`](https://docs.github.com/en/free-pro-team@latest/github/creating-cloning-and-archiving-repositories/about-code-owners)-fil på repo-rotnivå.
 
     ''')
     doc_body += make_table(data, predicate=is_owned_by_aura)
