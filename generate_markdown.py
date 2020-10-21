@@ -16,16 +16,13 @@ def is_owned_by_aura(repo):
 def make_table(data, *, predicate=is_owned_by_aura):
     table = textwrap.dedent('''\
         | Reponavn | Beskrivelse |
-        | :------: | :---------- |
-    ''')
+        | :------: | :---------- |''')
     for org_name, repos in data.items():
         for repo_name, repo in repos.items():
             if not predicate(repo): continue
             desc = repo['gh_data']['description']
-            table += textwrap.dedent(f"""\
-                | [{org_name}/{repo_name}]({repo['gh_data']['html_url']}) \
-                | {desc if desc else '**Mangler beskrivelse!**'} |
-            """)
+            table += f"\n| [{org_name}/{repo_name}]({repo['gh_data']['html_url']})"
+            table += f" | {desc if desc else '**Mangler beskrivelse!**'} |"
     return table
 
 
