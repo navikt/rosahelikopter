@@ -7,7 +7,6 @@ import requests
 import sys
 
 
-# TODO: 429 Status Code - sleep for 60 minutes
 def get_repos_of_org(org_name, authorization_token):
     json_data = list()
     def get_next_url(response) -> str:
@@ -26,6 +25,10 @@ def get_repos_of_org(org_name, authorization_token):
                 Authorization=f"token {authorization_token}",
             ),
         )
+        if response.status_code == 429:
+            # 429 is the rate-limiting error code. Resets every hour
+            time.sleep(60 * 60)
+            continue
         json_data.extend(response.json())
         target_url = get_next_url(response)
     return json_data
