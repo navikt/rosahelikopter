@@ -27,7 +27,19 @@ def make_table(data, *, predicate=is_owned_by_aura):
 
 
 if __name__ == '__main__':
-    data = json.load(sys.stdin)
+    try:
+        input_file = open(sys.argv[1], 'r')
+    except IndexError:
+        input_file = sys.stdin
+    with input_file as f:
+        json_string = f.read()
+
+    try:
+        data = json.loads(json_string)
+    except json.decoder.JSONDecodeError as e:
+        print('\n' + input_string, file=sys.stderr, end='\n\n)
+        raise e
+
     doc_body = textwrap.dedent('''\
     # Helikopteroversikt
 
