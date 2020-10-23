@@ -1,5 +1,6 @@
 #!/usr/bin/env python3 
 
+import argparse
 import json
 import sys
 import textwrap
@@ -27,7 +28,29 @@ def make_table(data, *, predicate=is_owned_by_aura):
 
 
 if __name__ == '__main__':
-    data = json.load(sys.stdin)
+    # Set up CLI
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        'input_file',
+        nargs='?',
+        type=argparse.FileType('r'),
+        default=sys.stdin,
+        help='JSON input file. Defaults to stdin when not defined.',
+    )
+    args = parser.parse_args()
+
+    # Parse input
+    try:
+        data = json.load(args.input_file)
+    except json.decoder.JSONDecodeError:
+        error_source = '<stdin>' if args.input_file is sys.stdin else args.input_file
+        print(
+            f"\nInvalid JSON in '{error_source}' - ensure the file/stdin contains valid JSON.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    # Tabulate and write output
     doc_body = textwrap.dedent('''\
     # Helikopteroversikt
 
