@@ -5,6 +5,7 @@ import json
 import os
 import requests
 import sys
+import time
 
 
 def get_repos_of_org(org_name, authorization_token):
