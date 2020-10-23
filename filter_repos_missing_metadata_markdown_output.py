@@ -38,7 +38,6 @@ def make_markdown_table(data) -> typing.Dict[str, typing.Dict[str, str]]:
         table += f"| {repo_name} "
         for key in data.keys():
             # Set check-mark for each key _not_ missing per repo/row
-            # <ul><li>[x] item1</li><li>[ ] item2</li></ul>
             table += '| '
             table += ':heavy_check_mark:' if key not in missing_keys else ':x:'
         table += ' |\n'
