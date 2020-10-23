@@ -45,7 +45,7 @@ if __name__ == '__main__':
     except json.decoder.JSONDecodeError:
         error_source = '<stdin>' if args.input_file is sys.stdin else args.input_file
         print(
-            f"\nInvalid JSON in '{error_source}' - ensure the file/stdin contains valid JSON.",
+            f"\nInvalid JSON in '{error_source}' - ensure the source contains valid JSON.",
             file=sys.stderr,
         )
         sys.exit(1)
