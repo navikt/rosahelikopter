@@ -7,14 +7,28 @@ import requests
 import sys
 
 
+# TODO: 429 Status Code - sleep for 60 minutes
 def get_repos_of_org(org_name, authorization_token):
-    return requests.get(
-        f"https://api.github.com/orgs/{org_name}/repos",
-        headers=dict(
-            Accept='application/vnd.github.v3+json',
-            Authorization=f"token {authorization_token}"
+    json_data = list()
+    def get_next_url(response) -> str:
+        next_link = list(filter(
+            lambda link_dict: link_dict['rel'] == 'next',
+            requests.utils.parse_header_links(response.headers['link'])
+        ))
+        return '' if len(next_link) != 1 else next_link[0]['url']
+
+    target_url = f"https://api.github.com/orgs/{org_name}/repos?per_page=100"
+    while target_url:
+        response = requests.get(
+            url=target_url,
+            headers=dict(
+                Accept='application/vnd.github.v3+json',
+                Authorization=f"token {authorization_token}",
+            ),
         )
-    ).json()
+        json_data.extend(response.json())
+        target_url = get_next_url(response)
+    return json_data
 
 
 def read_repo_file(repo_name, org_name, file_path, *, ref_name='master'):
