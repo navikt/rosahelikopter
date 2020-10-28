@@ -48,6 +48,18 @@ def get_repos_of_org(org_name, authorization_token, *, max_pages=None):
     return json_data
 
 
+def get_team_permissions_for_repo(repo_name, org_name):
+    response = requests.get(
+        f"https://api.github.com/repos/{org_name}/{repo_name}/teams",
+        headers=dict(
+            Accept='application/vnd.github.v3.raw+json',
+            Authorization=f"token {authorization_token}",
+        ),
+    )
+    assert response.status_code in range(200, 400)
+    return response.json()
+
+
 def read_repo_file(repo_name, org_name, file_path, *, ref_name='master'):
     response = requests.get(
         f"https://api.github.com/repos/{org_name}/{repo_name}/contents/{file_path}",
@@ -82,6 +94,10 @@ if __name__ == '__main__':
                     org_name=org_name,
                     file_path='CODEOWNERS',
                     ref_name=repo['default_branch'],
+                )
+                orgs[org_name][repo_name]['team_permissions'] = get_team_permissions_for_repo(
+                    repo_name=repo_name,
+                    org_name=org_name,
                 )
 
     print(json.dumps(orgs, indent=2))
