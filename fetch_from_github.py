@@ -9,7 +9,6 @@ import time
 
 
 def get_repos_of_org(org_name, authorization_token, *, max_pages=None):
-    json_data = list()
     def get_next_url(response) -> str:
         if 'link' not in response.headers:
             return ''
