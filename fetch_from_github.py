@@ -19,17 +19,13 @@ def get_repos_of_org(org_name, authorization_token, *, max_pages=None):
         ))
         return '' if len(next_link) != 1 else next_link[0]['url']
 
-    counter = 0
+    def check_page_limit(counter, page_limit):
+        if not isinstance(page_limit, int): return True
+        return counter <= page_limit
+
+    json_data, counter = list(), 0
     target_url = f"https://api.github.com/orgs/{org_name}/repos?per_page=100"
-    while (
-        target_url
-        or (
-            # If target_url is set, check for pagination limit
-            target_url
-            and isinstance(max_pages, int)
-            and counter <= max_pages
-        )
-    ):
+    while target_url and check_page_limit(counter, max_pages):
         response = requests.get(
             url=target_url,
             headers=dict(
@@ -37,7 +33,7 @@ def get_repos_of_org(org_name, authorization_token, *, max_pages=None):
                 Authorization=f"token {authorization_token}",
             ),
         )
-        if response.status_code == 429:
+        if response.status_code in (403, 429):
             # 429 is the rate-limiting error code. Resets every hour
             print(
                 f"Request {target_url} has been rate-limited! Sleeping for one hour.",
@@ -45,6 +41,7 @@ def get_repos_of_org(org_name, authorization_token, *, max_pages=None):
             )
             time.sleep(60 * 60)
             continue
+        assert response.status_code in range(200, 400)
         json_data.extend(response.json())
         target_url = get_next_url(response)
         counter += 1
