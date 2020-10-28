@@ -5,16 +5,34 @@ import json
 import os
 import requests
 import sys
+import time
 
 
 def get_repos_of_org(org_name, authorization_token):
-    return requests.get(
-        f"https://api.github.com/orgs/{org_name}/repos",
-        headers=dict(
-            Accept='application/vnd.github.v3+json',
-            Authorization=f"token {authorization_token}"
+    json_data = list()
+    def get_next_url(response) -> str:
+        next_link = list(filter(
+            lambda link_dict: link_dict['rel'] == 'next',
+            requests.utils.parse_header_links(response.headers['link'])
+        ))
+        return '' if len(next_link) != 1 else next_link[0]['url']
+
+    target_url = f"https://api.github.com/orgs/{org_name}/repos?per_page=100"
+    while target_url:
+        response = requests.get(
+            url=target_url,
+            headers=dict(
+                Accept='application/vnd.github.v3+json',
+                Authorization=f"token {authorization_token}",
+            ),
         )
-    ).json()
+        if response.status_code == 429:
+            # 429 is the rate-limiting error code. Resets every hour
+            time.sleep(60 * 60)
+            continue
+        json_data.extend(response.json())
+        target_url = get_next_url(response)
+    return json_data
 
 
 def read_repo_file(repo_name, org_name, file_path, *, ref_name='master'):
