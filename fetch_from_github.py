@@ -11,6 +11,8 @@ import time
 def get_repos_of_org(org_name, authorization_token):
     json_data = list()
     def get_next_url(response) -> str:
+        if 'link' not in response.headers:
+            return ''
         next_link = list(filter(
             lambda link_dict: link_dict['rel'] == 'next',
             requests.utils.parse_header_links(response.headers['link'])
