@@ -30,6 +30,10 @@ def get_repos_of_org(org_name, authorization_token):
         )
         if response.status_code == 429:
             # 429 is the rate-limiting error code. Resets every hour
+            print(
+                f"Request {target_url} has been rate-limited! Sleeping for one hour.",
+                file=sys.stderr,
+            )
             time.sleep(60 * 60)
             continue
         json_data.extend(response.json())
