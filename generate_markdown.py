@@ -21,6 +21,7 @@ def make_table(data, *, predicate=is_owned_by_aura):
     for org_name, repos in data.items():
         for repo_name, repo in repos.items():
             if not predicate(repo): continue
+            if repo['archived'] == True: continue
             desc = repo['description']
             table += f"\n| [{org_name}/{repo_name}]({repo['html_url']})"
             table += f" | {desc if desc else '**Mangler beskrivelse!**'} |"
