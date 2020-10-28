@@ -8,7 +8,7 @@ import sys
 import time
 
 
-def get_repos_of_org(org_name, authorization_token):
+def get_repos_of_org(org_name, authorization_token, *, max_pages=None):
     json_data = list()
     def get_next_url(response) -> str:
         if 'link' not in response.headers:
@@ -19,8 +19,17 @@ def get_repos_of_org(org_name, authorization_token):
         ))
         return '' if len(next_link) != 1 else next_link[0]['url']
 
+    counter = 0
     target_url = f"https://api.github.com/orgs/{org_name}/repos?per_page=100"
-    while target_url:
+    while (
+        target_url
+        or (
+            # If target_url is set, check for pagination limit
+            target_url
+            and isinstance(max_pages, int)
+            and counter <= max_pages
+        )
+    ):
         response = requests.get(
             url=target_url,
             headers=dict(
@@ -38,6 +47,7 @@ def get_repos_of_org(org_name, authorization_token):
             continue
         json_data.extend(response.json())
         target_url = get_next_url(response)
+        counter += 1
     return json_data
 
 
@@ -62,11 +72,9 @@ if __name__ == '__main__':
         print('Authorization token must be set in $GITHUB_USER_TOKEN', file=sys.stderr)
         sys.exit(1)
 
-    desired_orgs = ('navikt', 'nais')
-    orgs = {}
-
+    desired_orgs, orgs = ('navikt', 'nais'), dict()
     for org_name in desired_orgs:
-        repos = get_repos_of_org(org_name, authorization_token)
+        repos = get_repos_of_org(org_name, authorization_token, max_pages=2)
         orgs[org_name] = {r['name']: r for r in repos}
 
         for repo_name, repo in orgs[org_name].items():
