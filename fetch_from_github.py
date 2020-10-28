@@ -56,12 +56,13 @@ def read_repo_file(repo_name, org_name, file_path, *, ref_name='master'):
         f"https://api.github.com/repos/{org_name}/{repo_name}/contents/{file_path}",
         headers=dict(
             Accept='application/vnd.github.v3.raw+json',
-            Authorization=f"token {authorization_token}"
+            Authorization=f"token {authorization_token}",
         ),
         params=dict(ref=ref_name),
     )
     if response.status_code == 404:
         raise KeyError(f"'{file_path}' not found in '{org_name}/{repo_name}@{ref_name}'")
+    assert response.status_code in range(200, 400)
     return response.text
 
 
