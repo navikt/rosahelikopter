@@ -8,9 +8,11 @@ import textwrap
 
 def is_owned_by_aura(repo):
     return any(
-        owner in repo.get('CODEOWNERS', '')
-        for owner
-        in ('navikt/aura', 'nais/aura')
+        permission['name'] in (
+            'aura',
+        )
+        and permission['permission'] == 'admin'
+        for permission in repo.get('team_permissions', [])
     )
 
 
@@ -55,7 +57,8 @@ if __name__ == '__main__':
     doc_body = textwrap.dedent('''\
     # Helikopteroversikt
 
-    Dette er en oversikt over repositories med enten `navikt/aura` eller `nais/aura` i sin [`CODEOWNERS`](https://docs.github.com/en/free-pro-team@latest/github/creating-cloning-and-archiving-repositories/about-code-owners)-fil på repo-rotnivå.
+    Dette er en oversikt samlet fra Github repositories innunder fra `navikt` og `nais` organisasjonene.
+    Tabellen lister alle repoer som har spesifiserte (hardkodede) Github Teams listet som `'admin'` på repo-nivå.
 
     ''')
     doc_body += make_table(data, predicate=is_owned_by_aura)
