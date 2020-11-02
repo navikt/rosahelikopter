@@ -55,23 +55,10 @@ def get_team_permissions_for_repo(repo_name, org_name):
             Authorization=f"token {authorization_token}",
         ),
     )
+    if response.status_code == 404:
+        raise RuntimeError(f"Cannot read {org_name}/{repo_name}'s team permissions!")
     assert response.status_code in range(200, 400)
     return response.json()
-
-
-def read_repo_file(repo_name, org_name, file_path, *, ref_name='master'):
-    response = requests.get(
-        f"https://api.github.com/repos/{org_name}/{repo_name}/contents/{file_path}",
-        headers=dict(
-            Accept='application/vnd.github.v3.raw+json',
-            Authorization=f"token {authorization_token}",
-        ),
-        params=dict(ref=ref_name),
-    )
-    if response.status_code == 404:
-        raise KeyError(f"'{file_path}' not found in '{org_name}/{repo_name}@{ref_name}'")
-    assert response.status_code in range(200, 400)
-    return response.text
 
 
 if __name__ == '__main__':
@@ -81,22 +68,14 @@ if __name__ == '__main__':
         print('Authorization token must be set in $GITHUB_USER_TOKEN', file=sys.stderr)
         sys.exit(1)
 
-    desired_orgs, orgs = ('navikt', 'nais'), dict()
-    for org_name in desired_orgs:
-        repos = get_repos_of_org(org_name, authorization_token, max_pages=2)
-        orgs[org_name] = {r['name']: r for r in repos}
-
-        for repo_name, repo in orgs[org_name].items():
-            with contextlib.suppress(KeyError):
-                orgs[org_name][repo_name]['CODEOWNERS'] = read_repo_file(
-                    repo_name=repo_name,
-                    org_name=org_name,
-                    file_path='CODEOWNERS',
-                    ref_name=repo['default_branch'],
-                )
-                orgs[org_name][repo_name]['team_permissions'] = get_team_permissions_for_repo(
-                    repo_name=repo_name,
+    results = dict()
+    for org_name in ('navikt', 'nais'):
+        for repo in get_repos_of_org(org_name, authorization_token):
+            with contextlib.suppress(RuntimeError):
+                repo['team_permissions'] = get_team_permissions_for_repo(
+                    repo_name=repo['name'],
                     org_name=org_name,
                 )
+            results[f"{org_name}/{repo['name']}"] = repo
 
-    print(json.dumps(orgs, indent=2))
+    print(json.dumps(results, indent=2))

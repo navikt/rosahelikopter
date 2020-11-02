@@ -10,11 +10,10 @@ def get_repos_missing_key(
     *keys_to_check: typing.Iterable[str],
 ) -> typing.Dict[str, typing.Dict[str, str]]:
     return_data = {key: dict() for key in keys_to_check}
-    for org_name, repos in data.items():
-        for repo_name, repo_data in repos.items():
-            for missing_key in keys_to_check:
-                if not repo_data.get(missing_key):
-                    return_data[missing_key][f"{org_name}/{repo_name}"] = repo_data['html_url']
+    for repo_name, repo_data in data.items():
+        for missing_key in keys_to_check:
+            if not repo_data.get(missing_key):
+                return_data[missing_key][f"{repo_name}"] = repo_data['html_url']
     return return_data
 
 
@@ -60,7 +59,7 @@ if __name__ == '__main__':
 
     repos_missing_keys = get_repos_missing_key(
         data,
-        'CODEOWNERS',
+        'team_permissions',
         'description',
     )
     # print(json.dumps(repos_missing_keys, indent=2))
