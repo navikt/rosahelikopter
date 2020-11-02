@@ -5,15 +5,7 @@ import json
 import sys
 import textwrap
 
-
-def is_owned_by_aura(repo):
-    return any(
-        permission['name'] in (
-            'aura',
-        )
-        and permission['permission'] == 'admin'
-        for permission in repo.get('team_permissions', [])
-    )
+from common.repo_criteria import is_owned_by_aura
 
 
 def make_table(data, *, predicate=is_owned_by_aura):

@@ -4,6 +4,7 @@ import json
 import sys
 import typing
 
+from common.repo_criteria import is_owned_by_aura
 
 def get_repos_missing_key(
     data: typing.Dict[str, typing.Dict[str, typing.Dict]],
@@ -12,7 +13,10 @@ def get_repos_missing_key(
     return_data = {key: dict() for key in keys_to_check}
     for repo_name, repo_data in data.items():
         for missing_key in keys_to_check:
-            if not repo_data.get(missing_key):
+            if (
+                missing_key == 'team_permissions' and not is_owned_by_aura(repo_data)
+                or repo_data.get(missing_key, None)
+            ):
                 return_data[missing_key][f"{repo_name}"] = repo_data['html_url']
     return return_data
 
