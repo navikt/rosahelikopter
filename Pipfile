@@ -7,7 +7,7 @@ verify_ssl = true
 ipython = "*"
 
 [packages]
-requests = "*"
+python-graphql-client = "*"
 
 [requires]
 python_version = "3.7"

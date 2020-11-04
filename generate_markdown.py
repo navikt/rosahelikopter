@@ -14,13 +14,18 @@ def make_table(data, *, predicate=is_owned_by_aura):
         | :------: | :---------- |''')
     for repo_name, repo in data.items():
         if (
-            not predicate(repo)
-            or repo['archived'] is True
+            repo['isArchived'] is True
+            or not any(
+                key.startswith('team:')
+                and value == 'ADMIN'
+                for key, value
+                in repo.items()
+            )
         ):
             # We're not interested in parsing/displaying info of this repository.
             continue
         desc = repo['description']
-        table += f"\n| [{repo_name}]({repo['html_url']})"
+        table += f"\n| [{repo_name}]({repo['url']})"
         table += f" | {desc if desc else '**Mangler beskrivelse!**'} |"
     return table
 
@@ -53,7 +58,7 @@ if __name__ == '__main__':
     # Helikopteroversikt
 
     Dette er en oversikt over Github repositories fra innunder `navikt` og `nais` organisasjonene.
-    Tabelloversikten lister alle ikke-arkiverte repoer som har spesifiserte (hardkodede) Github Teams listet som `'admin'`.
+    Tabelloversikten lister alle ikke-arkiverte repoer som har spesifiserte (hardkodede) Github Teams listet som `'admin'`s.
 
     ''')
     doc_body += make_table(data, predicate=is_owned_by_aura)
