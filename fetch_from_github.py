@@ -3,62 +3,89 @@
 import contextlib
 import json
 import os
-import requests
 import sys
-import time
+import textwrap
+
+from python_graphql_client import GraphqlClient
 
 
-def get_repos_of_org(org_name, authorization_token, *, max_pages=None):
-    def get_next_url(response) -> str:
-        if 'link' not in response.headers:
-            return ''
-        next_link = list(filter(
-            lambda link_dict: link_dict['rel'] == 'next',
-            requests.utils.parse_header_links(response.headers['link'])
-        ))
-        return '' if len(next_link) != 1 else next_link[0]['url']
-
-    def check_page_limit(counter, page_limit):
-        if not isinstance(page_limit, int): return True
-        return counter <= page_limit
-
-    json_data, counter = list(), 0
-    target_url = f"https://api.github.com/orgs/{org_name}/repos?per_page=100"
-    while target_url and check_page_limit(counter, max_pages):
-        response = requests.get(
-            url=target_url,
-            headers=dict(
-                Accept='application/vnd.github.v3+json',
-                Authorization=f"token {authorization_token}",
-            ),
+def graphql_fetch_access_permission_for_repoes_for_team_in_org(
+    org_name: str,
+    team_name: str,
+    client: GraphqlClient,
+    *,
+    continue_pagination_token='',
+):
+    repositories_data = client.execute(
+        _graphql_get_repository_access_permissions_for_team_in_org(
+            org_name=org_name,
+            team_name=team_name,
+            repositories_continuation_token=continue_pagination_token,
         )
-        if response.status_code in (403, 429):
-            # 429 is the rate-limiting error code. Resets every hour
-            print(
-                f"Request {target_url} has been rate-limited! Sleeping for one hour.",
-                file=sys.stderr,
-            )
-            time.sleep(60 * 60)
-            continue
-        assert response.status_code in range(200, 400)
-        json_data.extend(response.json())
-        target_url = get_next_url(response)
-        counter += 1
-    return json_data
+    )['data']['organization']['teams']['edges'][0]['node']['repositories']
+
+    remaining_repositories = list()
+    if repositories_data['pageInfo']['hasNextPage'] is True:
+        remaining_repositories = graphql_fetch_access_permission_for_repoes_for_team_in_org(
+            org_name=org_name,
+            team_name=team_name,
+            client=client,
+            continue_pagination_token=repositories_data['pageInfo']['endCursor'],
+        )
+
+    return repositories_data['edges'] + remaining_repositories
 
 
-def get_team_permissions_for_repo(repo_name, org_name):
-    response = requests.get(
-        f"https://api.github.com/repos/{org_name}/{repo_name}/teams",
-        headers=dict(
-            Accept='application/vnd.github.v3.raw+json',
-            Authorization=f"token {authorization_token}",
-        ),
+def _graphql_get_repository_access_permissions_for_team_in_org(
+    org_name: str,
+    team_name: str,
+    *,
+    repositories_continuation_token=None
+):
+    # Build query parameters which might change depending on pagination
+    query_parameters = dict(
+        first=1,
+        query=f"\"{team_name}\"",
+        after=f"\"{repositories_continuation_token}\""
     )
-    if response.status_code == 404:
-        raise RuntimeError(f"Cannot read {org_name}/{repo_name}'s team permissions!")
-    assert response.status_code in range(200, 400)
-    return response.json()
+    if not repositories_continuation_token:
+        del query_parameters['after']
+    team_query_string = ', '.join([
+        f"{key}: {value}"
+        for key, value
+        in query_parameters.items()
+    ])
+
+    # Build multi-line query string _with_ built query params
+    return textwrap.dedent(f"""\
+        query {{
+          organization(login: "{org_name}") {{
+            teams({team_query_string}) {{
+              edges {{
+                node {{
+                  ... on Team {{
+                    repositories(first:100) {{
+                      pageInfo {{
+                        endCursor
+                        hasNextPage
+                      }}
+                      totalCount
+                      edges {{
+                        permission
+                        node {{
+                          description
+                          nameWithOwner
+                          url
+                          isArchived
+                        }}
+                      }}
+                    }}
+                  }}
+                }}
+              }}
+            }}
+          }}
+        }}""")
 
 
 if __name__ == '__main__':
@@ -68,14 +95,25 @@ if __name__ == '__main__':
         print('Authorization token must be set in $GITHUB_USER_TOKEN', file=sys.stderr)
         sys.exit(1)
 
+    client = GraphqlClient('https://api.github.com/graphql')
+    client.headers.update(
+        dict(Authorization=f"bearer {authorization_token}")
+    )
+
     results = dict()
-    for org_name in ('navikt', 'nais'):
-        for repo in get_repos_of_org(org_name, authorization_token):
-            with contextlib.suppress(RuntimeError):
-                repo['team_permissions'] = get_team_permissions_for_repo(
-                    repo_name=repo['name'],
-                    org_name=org_name,
-                )
-            results[f"{org_name}/{repo['name']}"] = repo
+    for org_name, team_names in dict(
+        navikt=('aura', 'pig-aiven'),
+        nais=('aura', 'naisdevice'),
+    ).items():
+        for team_name in team_names:
+            for repo_data in graphql_fetch_access_permission_for_repoes_for_team_in_org(
+                org_name=org_name,
+                team_name=team_name,
+                client=client,
+            ):
+                repo_name = repo_data['node']['nameWithOwner']
+                if repo_name not in results:
+                    results[repo_name] = repo_data['node']
+                results[repo_name][f"team:{team_name}:repo_permission"] = repo_data['permission']
 
     print(json.dumps(results, indent=2))
