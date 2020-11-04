@@ -5,26 +5,23 @@ import json
 import sys
 import textwrap
 
-
-def is_owned_by_aura(repo):
-    return any(
-        owner in repo.get('CODEOWNERS', '')
-        for owner
-        in ('navikt/aura', 'nais/aura')
-    )
+from common.repo_criteria import is_owned_by_aura
 
 
 def make_table(data, *, predicate=is_owned_by_aura):
     table = textwrap.dedent('''\
         | Reponavn | Beskrivelse |
         | :------: | :---------- |''')
-    for org_name, repos in data.items():
-        for repo_name, repo in repos.items():
-            if not predicate(repo): continue
-            if repo['archived'] == True: continue
-            desc = repo['description']
-            table += f"\n| [{org_name}/{repo_name}]({repo['html_url']})"
-            table += f" | {desc if desc else '**Mangler beskrivelse!**'} |"
+    for repo_name, repo in data.items():
+        if (
+            not predicate(repo)
+            or repo['archived'] is True
+        ):
+            # We're not interested in parsing/displaying info of this repository.
+            continue
+        desc = repo['description']
+        table += f"\n| [{repo_name}]({repo['html_url']})"
+        table += f" | {desc if desc else '**Mangler beskrivelse!**'} |"
     return table
 
 
@@ -55,7 +52,8 @@ if __name__ == '__main__':
     doc_body = textwrap.dedent('''\
     # Helikopteroversikt
 
-    Dette er en oversikt over repositories med enten `navikt/aura` eller `nais/aura` i sin [`CODEOWNERS`](https://docs.github.com/en/free-pro-team@latest/github/creating-cloning-and-archiving-repositories/about-code-owners)-fil på repo-rotnivå.
+    Dette er en oversikt over Github repositories fra innunder `navikt` og `nais` organisasjonene.
+    Tabelloversikten lister alle ikke-arkiverte repoer som har spesifiserte (hardkodede) Github Teams listet som `'admin'`.
 
     ''')
     doc_body += make_table(data, predicate=is_owned_by_aura)
