@@ -5,10 +5,8 @@ import json
 import sys
 import textwrap
 
-from common.repo_criteria import is_owned_by_aura
 
-
-def make_table(data, *, predicate=is_owned_by_aura):
+def make_table(data):
     table = textwrap.dedent('''\
         | Reponavn | Beskrivelse |
         | :------: | :---------- |''')
@@ -61,5 +59,5 @@ if __name__ == '__main__':
     Tabelloversikten lister alle ikke-arkiverte repoer som har spesifiserte (hardkodede) Github Teams listet som `'admin'`s.
 
     ''')
-    doc_body += make_table(data, predicate=is_owned_by_aura)
+    doc_body += make_table(data)
     print(doc_body)
