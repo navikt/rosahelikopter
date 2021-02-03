@@ -126,4 +126,5 @@ if __name__ == '__main__':
                     results[repo_name] = repo_data['node']
                 results[repo_name][f"team:{team_name}:repo_permission"] = repo_data['permission']
 
-    print(json.dumps(results, indent=2))
+    # print(f"{len(results)}", file=sys.stderr)
+    print(json.dumps({repo_name: results[repo_name] for repo_name in sorted(results)}, indent=2))
