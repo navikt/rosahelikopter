@@ -22,7 +22,14 @@ def graphql_fetch_access_permission_for_repoes_for_team_in_org(
             team_name=team_name,
             repositories_continuation_token=continue_pagination_token,
         )
-    )['data']['organization']['teams']['edges'][0]['node']['repositories']
+    )
+    if 'errors' in repositories_data:
+        print(f"Failed GraphQL query with params:", file=sys.stderr)
+        print(f"\torg_name='{org_name}'", file=sys.stderr, end=', ')
+        print(f"team_name='{team_name}'", file=sys.stderr, end=', ')
+        print(f"continuation_token='{continue_pagination_token}'", file=sys.stderr)
+        print(json.dumps(repositories_data, indent=2), file=sys.stderr)
+    repositories_data = repositories_data['data']['organization']['teams']['edges'][0]['node']['repositories']
 
     remaining_repositories = list()
     if repositories_data['pageInfo']['hasNextPage'] is True:
