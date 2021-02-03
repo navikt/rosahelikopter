@@ -113,11 +113,14 @@ if __name__ == '__main__':
         nais=('aura', 'naisdevice'),
     ).items():
         for team_name in team_names:
-            for repo_data in graphql_fetch_access_permission_for_repoes_for_team_in_org(
+            repo_data_list = graphql_fetch_access_permission_for_repoes_for_team_in_org(
                 org_name=org_name,
                 team_name=team_name,
                 client=client,
-            ):
+            )
+            repo_data_list = [r for r in repo_data_list if r]
+            # print(json.dumps(repo_data_list, indent=2), file=sys.stderr)
+            for repo_data in repo_data_list:
                 repo_name = repo_data['node']['nameWithOwner']
                 if repo_name not in results:
                     results[repo_name] = repo_data['node']
