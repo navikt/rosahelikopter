@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
+# Python standard library imports
 import contextlib
 import json
 import os
 import sys
 import textwrap
 
+# Non-standard library python package imports
 from python_graphql_client import GraphqlClient
 
 
