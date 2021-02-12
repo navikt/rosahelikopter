@@ -11,10 +11,40 @@ python = "^3.8"
 pytest = "^6.2.2"
 ipython = "^7.20.0"
 isort = "^5.7.0"
+pytest-cov = "^2.11.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+log_level = 'DEBUG'
+python_files = [
+    'tests.py',
+    'test_*.py',
+    '*_tests.py',
+    'check_*.py',
+    'example_*.py',
+]
+console_output_style = 'count'
+testpaths = ['tests']
+norecursedirs = [
+    '.git',
+    'htmlcov',
+    '.*_cache',
+    '*.egg-info',
+    '.hypothesis',
+    '__pycache__',
+]
+python_functions = [
+    'test_*',
+    'ensure_*',
+    'integration_test_*',
+]
+# TODO: re-structure python code to match:
+# addopts = '--cov=rosahelikopter'
+# fails?
+# continue_on_collection_errors = true
 
 [tool.isort]
 atomic = true
