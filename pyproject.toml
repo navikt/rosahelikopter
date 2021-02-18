@@ -3,11 +3,11 @@ name = "rosahelikopter"
 version = "1.0.0"
 description = "Generate a filtered overview of Github repositories in orgs owned by specified team(s)."
 authors = ["Christian Chavez <christian.chavez@nav.no>"]
+license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.8"
 python-graphql-client = "^0.4.2"
-dependency = { "path" = ".", develop = true }
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"
@@ -17,6 +17,7 @@ pytest-cov = "^2.11.1"
 hypothesis = "^6.2.0"
 
 [build-system]
+requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
@@ -61,7 +62,7 @@ multi_line_output = 3
 use_parentheses = true
 lines_after_imports = 2
 known_third_party = [
-	'IPython',
+    'IPython',
 ]
 default_section = 'THIRDPARTY'
 include_trailing_comma = true
