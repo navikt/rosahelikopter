@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 
+# Python standard library imports
 from typing import Dict
 
-from hypothesis import strategies as st
+# Non-standard library python package imports
 from hypothesis import given
+from hypothesis import strategies as st
 
+# Imports of module(s) internal to this project/package
 from rosahelikopter.string_templates import GRAPHQL_GITHUB_REPOS_QUERY_STRING
+
 
 @given(
     st.fixed_dictionaries(

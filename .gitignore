@@ -1,5 +1,6 @@
 # Python cruft:
 __pycache__/
+*.py[cod]
 
 # Hypothesis temp working files:
 .hypothesis/

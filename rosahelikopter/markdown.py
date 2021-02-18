@@ -1,13 +1,12 @@
-#!/usr/bin/env python3 
+#!/usr/bin/env python3
 
 # Python standard library imports
-import argparse
 import json
-import sys
 import textwrap
+from typing import Dict
 
 
-def make_table(data):
+def make_table(data: Dict[str, Dict[str, str]]) -> str:
     table = textwrap.dedent('''\
         | Reponavn | Beskrivelse |
         | :------: | :---------- |''')
@@ -29,7 +28,23 @@ def make_table(data):
     return table
 
 
+def make_markdown_template(repo_data: Dict[str, Dict[str, str]]) -> str:
+    # Tabulate and write output
+    doc_body = textwrap.dedent('''\
+    # Helikopteroversikt
+
+    Dette er en oversikt over Github repositories fra innunder `navikt` og `nais` organisasjonene.
+    Tabelloversikten lister alle ikke-arkiverte repoer som har spesifiserte (hardkodede) Github Teams listet som `'admin'`s.
+
+    ''')
+    doc_body += make_table(repo_data)
+    return doc_body
+
+
 if __name__ == '__main__':
+    import argparse
+    import sys
+
     # Set up CLI
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -52,13 +67,5 @@ if __name__ == '__main__':
         )
         sys.exit(1)
 
-    # Tabulate and write output
-    doc_body = textwrap.dedent('''\
-    # Helikopteroversikt
-
-    Dette er en oversikt over Github repositories fra innunder `navikt` og `nais` organisasjonene.
-    Tabelloversikten lister alle ikke-arkiverte repoer som har spesifiserte (hardkodede) Github Teams listet som `'admin'`s.
-
-    ''')
-    doc_body += make_table(data)
+    make_markdown_template(data)
     print(doc_body)

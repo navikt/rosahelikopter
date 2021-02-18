@@ -75,6 +75,7 @@ def _graphql_get_repository_access_permissions_for_team_in_org(
 
 
 if __name__ == '__main__':
+    # Python standard library imports
     import os
     try:
         authorization_token = os.environ['GITHUB_USER_TOKEN']
