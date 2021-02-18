@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 
+# vim: shiftwidth=4 softtabstop=4 tabstop=4 expandtab
+
 # Python standard library imports
-import contextlib
 import json
-import os
 import sys
-import textwrap
 
 # Non-standard library python package imports
 from python_graphql_client import GraphqlClient
+
+# Imports of module(s) internal to this project/package
+from rosahelikopter.string_templates import GRAPHQL_GITHUB_REPOS_QUERY_STRING
 
 
 def graphql_fetch_access_permission_for_repoes_for_team_in_org(
@@ -25,7 +27,7 @@ def graphql_fetch_access_permission_for_repoes_for_team_in_org(
             repositories_continuation_token=continue_pagination_token,
         )
     )
-    if 'errors' in repositories_data:
+    if repositories_data.get('errors', dict()):
         print(f"Failed GraphQL query with params:", file=sys.stderr)
         print(f"\torg_name='{org_name}'", file=sys.stderr, end=', ')
         print(f"team_name='{team_name}'", file=sys.stderr, end=', ')
@@ -66,38 +68,14 @@ def _graphql_get_repository_access_permissions_for_team_in_org(
     ])
 
     # Build multi-line query string _with_ built query params
-    return textwrap.dedent(f"""\
-        query {{
-          organization(login: "{org_name}") {{
-            teams({team_query_string}) {{
-              edges {{
-                node {{
-                  ... on Team {{
-                    repositories(first:100) {{
-                      pageInfo {{
-                        endCursor
-                        hasNextPage
-                      }}
-                      totalCount
-                      edges {{
-                        permission
-                        node {{
-                          description
-                          nameWithOwner
-                          url
-                          isArchived
-                        }}
-                      }}
-                    }}
-                  }}
-                }}
-              }}
-            }}
-          }}
-        }}""")
+    return GRAPHQL_GITHUB_REPOS_QUERY_STRING.format(
+        org_name=org_name,
+        team_query_string=team_query_string,
+    )
 
 
 if __name__ == '__main__':
+    import os
     try:
         authorization_token = os.environ['GITHUB_USER_TOKEN']
     except KeyError:

@@ -15,3 +15,7 @@ sort_imports: pyproject.toml $(python_files)
 	poetry run isort \
 		--virtual-env $(call split_string,$(shell poetry env list --full-path)) \
 		.
+
+.PHONY: run
+run:
+	poetry run python rosahelikopter
