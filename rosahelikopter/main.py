@@ -9,6 +9,7 @@ from collections import OrderedDict
 import json
 import os
 import sys
+from typing import Union
 
 # Non-standard library python package imports
 # 3rd-party python package imports
@@ -18,10 +19,18 @@ from python_graphql_client import GraphqlClient
 from rosahelikopter.github import graphql_fetch_access_permission_for_repoes_for_team_in_org
 from rosahelikopter.markdown import make_markdown_template
 
+
 def serialize_sets(obj):
     if isinstance(obj, set):
         return list(obj)
     return obj
+
+
+def repo_filter(repo_data: dict[str, Union[str, dict[str, set[str]]]]) -> bool:
+    if repo_data['isArchived'] or 'ADMIN' not in repo_data.get('permissions', {}):
+        # We're not interested in parsing/displaying info of this repository.
+        False
+    return True
 
 
 def main():
@@ -70,6 +79,12 @@ def main():
                 results[repo_name][perms][team_permission_role].add(team_name)
 
     # print(f"{len(results)}", file=sys.stderr)
+    results = {
+        repo_name: repo_data
+        for repo_name, repo_data,
+        in results.items()
+        if repo_filter(repo_data)
+    }
     results = OrderedDict(sorted(results.items()))
     # print(json.dumps(results, indent=2, default=serialize_sets), file=sys.stderr)
 
