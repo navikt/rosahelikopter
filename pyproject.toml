@@ -20,6 +20,27 @@ hypothesis = "^6.2.0"
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
+[tool.coverage.run]
+command_line = '--module rosahelikopter'
+
+[tool.coverage.path]
+source = 'rosahelikopter/'
+
+[tool.coverage.report]
+exclude_lines = [
+    # Have to re-enable the standard pragma
+    'pragma: no cover',
+
+    # Don't complain about missing debug-only code:
+    'def __repr__',
+
+    # Don't complain if non-runnable code isn't run:
+    'if 0:',
+    'if False:',
+    "if __name__ == '__main__':",
+]
+precision = 2
+
 [tool.pytest.ini_options]
 python_files = [
     'tests.py',
@@ -47,8 +68,7 @@ python_functions = [
     'integration_test_*',
 ]
 addopts = [
-    # Coverage options
-    "--cov=rosahelikopter",
+    # Coverage options not covered by [tools.coverage.*] options
     "--cov-report=term-missing:skip-covered",
     "--cov-report=html",
 
