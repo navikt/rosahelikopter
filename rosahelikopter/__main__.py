@@ -5,8 +5,8 @@ Just used as a proxy to the `main()` function in `rosahelikopter/main.py`.
 """
 
 # Imports of module(s) internal to this project/package
-from rosahelikopter.main import main
+from rosahelikopter.cli import cli
 
 
 if __name__ == '__main__':
-    main()
+    cli()

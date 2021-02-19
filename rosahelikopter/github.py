@@ -34,7 +34,11 @@ def graphql_fetch_access_permission_for_repoes_for_team_in_org(
         print(f"team_name='{team_name}'", file=sys.stderr, end=', ')
         print(f"continuation_token='{continue_pagination_token}'", file=sys.stderr)
         print(json.dumps(repositories_data, indent=2), file=sys.stderr)
-    repositories_data = repositories_data['data']['organization']['teams']['edges'][0]['node']['repositories']
+    try:
+        repositories_data = repositories_data['data']['organization']['teams']['edges'][0]['node']['repositories']
+    except IndexError:
+        # Due to no results for given team/org combination
+        return tuple()
 
     remaining_repositories = list()
     if repositories_data['pageInfo']['hasNextPage'] is True:

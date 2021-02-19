@@ -9,8 +9,9 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 # Imports of module(s) internal to this project/package
-from rosahelikopter.markdown import make_table
 from rosahelikopter.main import repo_filter
+from rosahelikopter.markdown import make_table
+
 
 MARKDOWN_VALID_TABLE_ROWS_REGEX_PATTERN = r'\| \[[-\w\d]+/[-\w\d]+\]\(.*\) \| .+ \|'
 GITHUB_NAME_WITH_OWNER = r'[\w\d-]+/[\w\d-]+'
