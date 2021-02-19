@@ -1,3 +1,17 @@
+# Python cruft:
+__pycache__/
+*.py[cod]
+
+# Hypothesis temp working files:
+.hypothesis/
+# except for the examples directory
+!.hypothesis/examples/
+
+# coverage (pytest-cov) (caches/reports)
+htmlcov/
+.coverage
+.coverage.*
+
 # We want to make REALLY SURE we don't include vim swap files ;)
 [._]*.s[a-v][a-z]
 !*.svg  # comment out if you don't need vector files

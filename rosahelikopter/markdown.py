@@ -1,34 +1,38 @@
-#!/usr/bin/env python3 
+#!/usr/bin/env python3
 
-import argparse
+# Python standard library imports
 import json
-import sys
 import textwrap
 
 
-def make_table(data):
+def make_table(data: dict[str, dict[str, str]]) -> str:
     table = textwrap.dedent('''\
         | Reponavn | Beskrivelse |
         | :------: | :---------- |''')
     for repo_name, repo in data.items():
-        if (
-            repo['isArchived'] is True
-            or not any(
-                key.startswith('team:')
-                and value == 'ADMIN'
-                for key, value
-                in repo.items()
-            )
-        ):
-            # We're not interested in parsing/displaying info of this repository.
-            continue
         desc = repo['description']
-        table += f"\n| [{repo_name}]({repo['url']})"
-        table += f" | {desc if desc else '**Mangler beskrivelse!**'} |"
+        table += f"\n| [{repo_name}]({repo['url']}) | {desc if desc else '**Mangler beskrivelse!**'} |"
     return table
 
 
+def make_markdown_template(repo_data: dict[str, dict[str, str]]) -> str:
+    # Tabulate and write output
+    doc_body = textwrap.dedent('''\
+    # Helikopteroversikt
+
+    Dette er en oversikt over Github repositories fra innunder `navikt` og `nais` organisasjonene.
+    Tabelloversikten lister alle ikke-arkiverte repoer som har spesifiserte (hardkodede) Github Teams listet som `'admin'`s.
+
+    ''')
+    doc_body += make_table(repo_data)
+    return doc_body
+
+
 if __name__ == '__main__':
+    # Python standard library imports
+    import argparse
+    import sys
+
     # Set up CLI
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -51,13 +55,5 @@ if __name__ == '__main__':
         )
         sys.exit(1)
 
-    # Tabulate and write output
-    doc_body = textwrap.dedent('''\
-    # Helikopteroversikt
-
-    Dette er en oversikt over Github repositories fra innunder `navikt` og `nais` organisasjonene.
-    Tabelloversikten lister alle ikke-arkiverte repoer som har spesifiserte (hardkodede) Github Teams listet som `'admin'`s.
-
-    ''')
-    doc_body += make_table(data)
+    make_markdown_template(data)
     print(doc_body)

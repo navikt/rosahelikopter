@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 
-import contextlib
-import json
-import os
-import sys
-import textwrap
+# vim: shiftwidth=4 softtabstop=4 tabstop=4 expandtab
 
+# Python standard library imports
+import json
+import sys
+
+# Non-standard library python package imports
 from python_graphql_client import GraphqlClient
 
+# Imports of module(s) internal to this project/package
+from rosahelikopter.string_templates import GRAPHQL_GITHUB_REPOS_QUERY_STRING
 
+
+# TODO: Make this into a generator function for lazy evaluation
 def graphql_fetch_access_permission_for_repoes_for_team_in_org(
     org_name: str,
     team_name: str,
@@ -23,7 +28,7 @@ def graphql_fetch_access_permission_for_repoes_for_team_in_org(
             repositories_continuation_token=continue_pagination_token,
         )
     )
-    if 'errors' in repositories_data:
+    if repositories_data.get('errors', dict()):
         print(f"Failed GraphQL query with params:", file=sys.stderr)
         print(f"\torg_name='{org_name}'", file=sys.stderr, end=', ')
         print(f"team_name='{team_name}'", file=sys.stderr, end=', ')
@@ -51,51 +56,29 @@ def _graphql_get_repository_access_permissions_for_team_in_org(
 ):
     # Build query parameters which might change depending on pagination
     query_parameters = dict(
-        first=1,
-        query=f"\"{team_name}\"",
+        first=100,  # Max repos github lets ut fetch per query
         after=f"\"{repositories_continuation_token}\""
     )
     if not repositories_continuation_token:
         del query_parameters['after']
-    team_query_string = ', '.join([
-        f"{key}: {value}"
-        for key, value
-        in query_parameters.items()
-    ])
 
-    # Build multi-line query string _with_ built query params
-    return textwrap.dedent(f"""\
-        query {{
-          organization(login: "{org_name}") {{
-            teams({team_query_string}) {{
-              edges {{
-                node {{
-                  ... on Team {{
-                    repositories(first:100) {{
-                      pageInfo {{
-                        endCursor
-                        hasNextPage
-                      }}
-                      totalCount
-                      edges {{
-                        permission
-                        node {{
-                          description
-                          nameWithOwner
-                          url
-                          isArchived
-                        }}
-                      }}
-                    }}
-                  }}
-                }}
-              }}
-            }}
-          }}
-        }}""")
+    # Build multi-line grapqhl query string _with_ given query params
+    return GRAPHQL_GITHUB_REPOS_QUERY_STRING.format(
+        org_name=org_name,
+        team_name=team_name,
+        repo_query_string=', '.join(
+            [
+                f"{key}: {value}"
+                for key, value
+                in query_parameters.items()
+            ]
+        )
+    )
 
 
 if __name__ == '__main__':
+    # Python standard library imports
+    import os
     try:
         authorization_token = os.environ['GITHUB_USER_TOKEN']
     except KeyError:
@@ -120,6 +103,13 @@ if __name__ == '__main__':
             )
             repo_data_list = [r for r in repo_data_list if r]
             # print(json.dumps(repo_data_list, indent=2), file=sys.stderr)
+            results = {
+                repo_data['node']['nameWithOwner']: dict(
+                    **repo_data['node'],
+                    **{repo_data['permission']: team_name}
+                )
+                for repo_data in repo_data_list
+            }
             for repo_data in repo_data_list:
                 repo_name = repo_data['node']['nameWithOwner']
                 if repo_name not in results:
