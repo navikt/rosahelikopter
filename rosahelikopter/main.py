@@ -8,11 +8,16 @@ File containing "main()" logic for rosahelikopter.
 from collections import OrderedDict
 import json
 import os
+from pathlib import Path
 import sys
-from typing import Union
+from typing import (
+    Any,
+    Iterable,
+    Union,
+)
 
-# Non-standard library python package imports
 # 3rd-party python package imports
+import click
 from python_graphql_client import GraphqlClient
 
 # Imports of module(s) internal to this project/package
@@ -33,24 +38,33 @@ def repo_filter(repo_data: dict[str, Union[str, dict[str, set[str]]]]) -> bool:
     return True
 
 
-def main():
-    try:
-        authorization_token = os.environ['GITHUB_USER_TOKEN']
-    except KeyError:
-        print('Authorization token must be set in $GITHUB_USER_TOKEN', file=sys.stderr)
-        sys.exit(1)
+def main(
+    teams: Iterable[str],
+    organizations: Iterable[str],
+    github_auth_token: str,
+    make_org_folders: bool,
+    make_team_files: bool,
+    tee_output: bool,
+    verbosity_level: int,
+    **kwargs: dict[Any, Any],
 
+) -> None:
     client = GraphqlClient('https://api.github.com/graphql')
     client.headers.update(
-        dict(Authorization=f"bearer {authorization_token}")
+        dict(Authorization=f"bearer {github_auth_token}")
     )
 
-    results = dict()
-    for org_name, team_names in dict(
-        navikt=('aura', 'pig-aiven'),
-        nais=('aura', 'naisdevice'),
-    ).items():
-        for team_name in team_names:
+    global_results = dict()
+    for org_name in organizations:
+        # First set-up folder if flag is set
+        org_folder = Path.cwd()
+        if make_org_folders:
+            org_folder = org_folder / org_name
+            org_folder.mkdir(exist_ok=True)
+
+        org_results = dict()
+        for team_name in teams:
+            team_results = dict()
             for repo_data in (
                 repo_data
                 for repo_data
@@ -59,39 +73,64 @@ def main():
                     team_name=team_name,
                     client=client,
                 )
-                if repo_data
+                if repo_data    # Remove empty results from GraphQL json output (happens sometimes)
             ):
                 # print(json.dumps(repo_data_list, indent=2), file=sys.stderr)
                 repo_name = repo_data['node']['nameWithOwner']
 
                 # If first time repo is seen by a team we're iterating over, add to collecting variable
-                if repo_name not in results:
-                    results[repo_name] = repo_data['node']
+                if repo_name not in team_results:
+                    team_results[repo_name] = repo_data['node']
 
                 perms = 'permissions'
-                if not isinstance(results[repo_name].get(perms), dict):
-                    results[repo_name][perms] = dict()
+                if not isinstance(team_results[repo_name].get(perms), dict):
+                    team_results[repo_name][perms] = dict()
 
                 # Set permission level team has for repo in question
                 team_permission_role = repo_data['permission']
-                if not isinstance(results[repo_name][perms].get(team_permission_role), set):
-                    results[repo_name][perms][team_permission_role] = set()
-                results[repo_name][perms][team_permission_role].add(team_name)
+                if not isinstance(team_results[repo_name][perms].get(team_permission_role), set):
+                    team_results[repo_name][perms][team_permission_role] = set()
+                team_results[repo_name][perms][team_permission_role].add(team_name)
 
-    # print(f"{len(results)}", file=sys.stderr)
-    results = {
-        repo_name: repo_data
-        for repo_name, repo_data,
-        in results.items()
-        if repo_filter(repo_data)
-    }
-    results = OrderedDict(sorted(results.items()))
-    # print(json.dumps(results, indent=2, default=serialize_sets), file=sys.stderr)
+            # Clean up results variable of non-valid repoes first
+            team_results = {
+                repo_name: repo_data
+                for repo_name, repo_data,
+                in team_results.items()
+                if repo_filter(repo_data)
+            }
+
+            # Save in case flags specify stdout/global output
+            org_results.update(team_results)
+            if make_team_files is False or len(team_results) == 0:
+                continue
+
+            # Write to team-named files
+            team_file = org_folder / f"{team_name}.md"
+            team_file.write_text(make_markdown_template(team_results))
+
+        # No repos for any of the teams in this org
+        if len(org_results) == 0: continue
+        global_results.update(org_results)
+        # Files have either already been written, or won't be written
+        if  make_team_files or make_org_folders is False: continue
+
+        # Write to org specific files
+        org_file = org_folder / 'overview.md'
+        org_file.write_text(make_markdown_template(org_results))
+
+    if (make_org_folders or make_team_files) and tee_output is False:
+        # Job done! No output to stdout
+        return
+
+    # print(f"{len(org_results)}", file=sys.stderr)
+    if len(global_results) == 0:
+        click.echo(f"No repositories found for teams {teams} in any of orgs {organizations}!", err=True)
+        return
+
+    global_results = OrderedDict(sorted(global_results.items()))
+    # click.echo(json.dumps(global_results, indent=2, default=serialize_sets), err=True)
 
     # Tabulate and write output
-    markdown_output = make_markdown_template(results)
-    print(markdown_output)
-
-
-if __name__ == '__main__':
-    main()
+    markdown_output = make_markdown_template(global_results)
+    click.echo(markdown_output)

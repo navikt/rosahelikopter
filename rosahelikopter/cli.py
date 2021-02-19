@@ -67,6 +67,11 @@ DEFAULT_TEAM_NAMES=(
     ),
 )
 @click.option(
+    '--tee-output', 'tee_output',
+    is_flag=True, default=False,
+    help='Flag to send output of program to stdout even if other flag for writing to files have been set.',
+)
+@click.option(
     '-a', '--github-auth-token',
     type=str, envvar='GITHUB_USER_TOKEN', required=True,
     help=textwrap.dedent(
@@ -105,6 +110,7 @@ def cli(
     teams: list[str],
     make_org_folders: bool,
     make_team_files: bool,
+    tee_output: bool,
     github_auth_token: str,
     verbosity: int,
     silence: int,
@@ -121,14 +127,15 @@ def cli(
 
     if local_vars['verbosity_level'] >= 2:
         # Remove so that json.dumps doesn't have a fit
-        del local_vars['ctx']
+        #  Use dict.pop() instead of del dict[key] here in case ctx is not in use
+        local_vars.pop('ctx', None)
         click.echo(
             json.dumps(local_vars, indent=2),
             err=True,
         )
         # Add back so that functionality further down in program
         # continues to work as expected
-        local_vars['ctx'] = ctx
+        if 'ctx' in locals().keys(): local_vars['ctx'] = ctx
 
     main(**local_vars)
 
