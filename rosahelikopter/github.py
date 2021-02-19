@@ -13,6 +13,7 @@ from python_graphql_client import GraphqlClient
 from rosahelikopter.string_templates import GRAPHQL_GITHUB_REPOS_QUERY_STRING
 
 
+# TODO: Make this into a generator function for lazy evaluation
 def graphql_fetch_access_permission_for_repoes_for_team_in_org(
     org_name: str,
     team_name: str,
@@ -55,22 +56,23 @@ def _graphql_get_repository_access_permissions_for_team_in_org(
 ):
     # Build query parameters which might change depending on pagination
     query_parameters = dict(
-        first=1,
-        query=f"\"{team_name}\"",
+        first=100,  # Max repos github lets ut fetch per query
         after=f"\"{repositories_continuation_token}\""
     )
     if not repositories_continuation_token:
         del query_parameters['after']
-    team_query_string = ', '.join([
-        f"{key}: {value}"
-        for key, value
-        in query_parameters.items()
-    ])
 
-    # Build multi-line query string _with_ built query params
+    # Build multi-line grapqhl query string _with_ given query params
     return GRAPHQL_GITHUB_REPOS_QUERY_STRING.format(
         org_name=org_name,
-        team_query_string=team_query_string,
+        team_name=team_name,
+        repo_query_string=', '.join(
+            [
+                f"{key}: {value}"
+                for key, value
+                in query_parameters.items()
+            ]
+        )
     )
 
 
@@ -101,6 +103,13 @@ if __name__ == '__main__':
             )
             repo_data_list = [r for r in repo_data_list if r]
             # print(json.dumps(repo_data_list, indent=2), file=sys.stderr)
+            results = {
+                repo_data['node']['nameWithOwner']: dict(
+                    **repo_data['node'],
+                    **{repo_data['permission']: team_name}
+                )
+                for repo_data in repo_data_list
+            }
             for repo_data in repo_data_list:
                 repo_name = repo_data['node']['nameWithOwner']
                 if repo_name not in results:

@@ -13,18 +13,12 @@ def make_table(data: Dict[str, Dict[str, str]]) -> str:
     for repo_name, repo in data.items():
         if (
             repo['isArchived'] is True
-            or not any(
-                key.startswith('team:')
-                and value == 'ADMIN'
-                for key, value
-                in repo.items()
-            )
+            or 'ADMIN' not in repo['permissions']
         ):
             # We're not interested in parsing/displaying info of this repository.
             continue
         desc = repo['description']
-        table += f"\n| [{repo_name}]({repo['url']})"
-        table += f" | {desc if desc else '**Mangler beskrivelse!**'} |"
+        table += f"\n| [{repo_name}]({repo['url']}) | {desc if desc else '**Mangler beskrivelse!**'} |"
     return table
 
 
@@ -42,6 +36,7 @@ def make_markdown_template(repo_data: Dict[str, Dict[str, str]]) -> str:
 
 
 if __name__ == '__main__':
+    # Python standard library imports
     import argparse
     import sys
 
