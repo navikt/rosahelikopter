@@ -1,4 +1,6 @@
+# Python standard library imports
 import typing
+
 
 _GITHUB_GRAPHQL_RESPONSE = dict[
 	str,

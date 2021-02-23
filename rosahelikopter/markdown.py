@@ -10,6 +10,7 @@ import pathlib
 import textwrap
 import typing
 
+# Imports of module(s) internal to this project/package
 from rosahelikopter import GIT_REPO
 
 
@@ -44,9 +45,9 @@ def generate_markdown_template(
 
     # List of teams used in intro template below
     indent = ' ' * 4
-    teams_list = f"{indent}- " + f"\n{indent}- ".join(
+    teams_list = '\n'.join(
         (
-            f"@{team}"
+            f"{indent}- @{team}"
             for team in teams
         )
     )
