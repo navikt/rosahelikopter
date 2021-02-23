@@ -13,6 +13,7 @@ import click
 # Imports of module(s) internal to this project/package
 from rosahelikopter.main import main
 
+
 DEFAULT_TEAM_NAMES=(
     'aura',
     'nais',
@@ -114,7 +115,11 @@ def cli(
     github_auth_token: str,
     verbosity: int,
     silence: int,
-):
+) -> dict:
+    # Remove duplicates
+    organizations = list(set(organizations))
+    teams = list(set(teams))
+
     local_vars = {name: value for name, value in locals().items() if not name.startswith('_')}
     # Set`verbosity_level`
     del local_vars['verbosity']
@@ -126,6 +131,9 @@ def cli(
         local_vars['teams'] = ('nais', 'aura')
 
     if local_vars['verbosity_level'] >= 2:
+        # Remove for security reasons:
+        local_vars['github_auth_token'] = '<REDACTED>'
+
         # Remove so that json.dumps doesn't have a fit
         #  Use dict.pop() instead of del dict[key] here in case ctx is not in use
         local_vars.pop('ctx', None)
@@ -136,6 +144,8 @@ def cli(
         # Add back so that functionality further down in program
         # continues to work as expected
         if 'ctx' in locals().keys(): local_vars['ctx'] = ctx
+
+        local_vars['github_auth_token'] = github_auth_token
 
     main(**local_vars)
 
