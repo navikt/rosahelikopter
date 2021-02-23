@@ -18,7 +18,7 @@ from typing import (
 
 # 3rd-party python package imports
 import click
-from python_graphql_client import GraphqlClient
+from gql.transport.requests import RequestsHTTPTransport
 
 # Imports of module(s) internal to this project/package
 from rosahelikopter.github import graphql_fetch_access_permission_for_repoes_for_team_in_org
@@ -31,8 +31,11 @@ def serialize_sets(obj):
     return obj
 
 
-def repo_filter(repo_data: dict[str, Union[str, dict[str, set[str]]]]) -> bool:
-    if repo_data['isArchived'] or 'ADMIN' not in repo_data.get('permissions', {}):
+def repo_filter(
+        repo_data: dict[str, Union[str, dict[str, set[str]]]],
+        permission_string: str,
+) -> bool:
+    if repo_data['isArchived'] is not True or 'ADMIN' != permission_string:
         # We're not interested in parsing/displaying info of this repository.
         False
     return True
@@ -86,37 +89,29 @@ def fetch_and_filter_repositories(
     graphql_client,
 ) -> dict:
     correctly_configured_repoes = dict()
+    graphql_results = graphql_fetch_access_permission_for_repoes_for_team_in_org(
+        org_name=org_name,
+        team_name=team_name,
+        gql_transport=graphql_client,
+    )
+    # click.echo(f"{len(graphql_results)} repoes returned through grapqhl for {org_name}/{team_name}", err=True)
+    # click.echo(f"{json.dumps(graphql_results, indent=2)}", err=True)
     for repo_data in (
         repo_data
         for repo_data
-        in graphql_fetch_access_permission_for_repoes_for_team_in_org(
-            org_name=org_name,
-            team_name=team_name,
-            client=graphql_client,
-        )
+        in graphql_results
         if repo_data    # Remove empty results from GraphQL json output (happens sometimes)
     ):
         # print(json.dumps(repo_data_list, indent=2), file=sys.stderr)
         repo_name = repo_data['node']['nameWithOwner']
 
-        if not repo_filter(repo_data['node']):
+        if not repo_filter(repo_data['node'], repo_data['permission']):
+            click.echo(f"{json.dumps(repo_data, indent=2)}", err=True)
             # Repository does not match criteria for filtering
             continue
 
-        # If first time repo is seen by a team we're iterating over, add to collecting variable
-        if repo_name not in correctly_configured_repoes:
-            correctly_configured_repoes[repo_name] = repo_data['node']
-
-        perms = 'permissions'
-        if not isinstance(correctly_configured_repoes[repo_name].get(perms), dict):
-            correctly_configured_repoes[repo_name][perms] = dict()
-
-        # Set permission level team has for repo in question
-        team_permission_role = repo_data['permission']
-        if not isinstance(correctly_configured_repoes[repo_name][perms].get(team_permission_role), set):
-            correctly_configured_repoes[repo_name][perms][team_permission_role] = set()
-        correctly_configured_repoes[repo_name][perms][team_permission_role].add(team_name)
-
+        correctly_configured_repoes[repo_name] = repo_data['node']
+    # click.echo(f"\t{len(correctly_configured_repoes)} repoes returned to main", err=True)
     return correctly_configured_repoes
 
 
@@ -132,9 +127,10 @@ def main(
     **kwargs: dict[Any, Any],
 
 ) -> None:
-    client = GraphqlClient('https://api.github.com/graphql')
-    client.headers.update(
-        dict(Authorization=f"bearer {github_auth_token}")
+    github_api_client = RequestsHTTPTransport(
+        verify=True,
+        url='https://api.github.com/graphql',
+        headers=dict(Authorization=f"bearer {github_auth_token}"),
     )
 
     global_results = dict()
@@ -151,7 +147,7 @@ def main(
             repoes_fetched = fetch_and_filter_repositories(
                 org_name=org_name,
                 team_name=team_name,
-                graphql_client=client,
+                graphql_client=github_api_client,
             )
             if verbosity_level >= 2:
                 click.echo(f"\t\t{len(repoes_fetched)} found for {team_name} in {org_name}!", err=True)
