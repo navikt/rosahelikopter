@@ -1,28 +1,23 @@
 #!/usr/bin/env python3
-
 """
-File containing "main()" logic for rosahelikopter.
+Module containing "main()" logic for rosahelikopter.
 """
 
 # Python standard library imports
 from collections import OrderedDict
 import json
 import os
-from pathlib import Path
-import sys
-from typing import (
-    Any,
-    Iterable,
-    Union,
-)
+import typing
 
 # 3rd-party python package imports
 import click
+import gql
 from gql.transport.requests import RequestsHTTPTransport
 
 # Imports of module(s) internal to this project/package
+from rosahelikopter import GIT_REPO, repository_is_relevant_for_overview
 from rosahelikopter.github import graphql_fetch_access_permission_for_repoes_for_team_in_org
-from rosahelikopter.markdown import make_markdown_template
+from rosahelikopter.markdown import generate_markdown_template, write_markdown_files
 
 
 def serialize_sets(obj):
@@ -31,101 +26,59 @@ def serialize_sets(obj):
     return obj
 
 
-def repo_filter(
-        repo_data: dict[str, Union[str, dict[str, set[str]]]],
-        permission_string: str,
-) -> bool:
-    if repo_data['isArchived'] is not True or 'ADMIN' != permission_string:
-        # We're not interested in parsing/displaying info of this repository.
-        False
-    return True
-
-
-def write_markdown_files(
-    dataset,
-    organizations: Iterable[str],
-    teams: Iterable[str],
-    make_org_folders: bool,
-    make_team_files: bool,
-) -> None:
-    for org_name in organizations:
-        # First set-up folder if flag is set
-        file_output_dir = Path.cwd()
-        if make_org_folders and len(dataset[org_name]) > 0:
-            file_output_dir = file_output_dir / org_name
-            file_output_dir.mkdir(exist_ok=True)
-
-        # Then, write to file specified with CLI options/flags
-        if make_team_files:
-            for team in teams:
-                file_specific_team_repoes = OrderedDict(
-                    sorted(
-                        {
-                            repo_name: repo_data
-                            for repo_name, repo_data
-                            in dataset.get(team, dict()).items()
-                            if not make_org_folders or (
-                                make_org_folders and repo_name.startswith(f"{org_name}/")
-                            )
-                        }.items()
-                    )
-                )
-                if len(file_specific_team_repoes) == 0:
-                    continue
-                output_file = file_output_dir / f"{team}.md"
-                output_file.write_text(make_markdown_template(file_specific_team_repoes))
-        else:
-            if len(dataset[org_name]) == 0:
-                file_output_dir.rmdir()
-                continue
-            output_file = file_output_dir / "overview.md"
-            output_file.write_text(make_markdown_template(dataset[org_name]))
-    return
+class hashable_dict(dict):
+    def __hash__(self):
+        return hash(tuple(sorted(self.items())))
 
 
 def fetch_and_filter_repositories(
     org_name: str,
     team_name: str,
-    graphql_client,
-) -> dict:
-    correctly_configured_repoes = dict()
-    graphql_results = graphql_fetch_access_permission_for_repoes_for_team_in_org(
-        org_name=org_name,
-        team_name=team_name,
-        gql_transport=graphql_client,
-    )
+    graphql_client: gql.Client,
+) -> list[GIT_REPO]:
+    # graphql_results = graphql_fetch_access_permission_for_repoes_for_team_in_org(
+    #     org_name=org_name,
+    #     team_name=team_name,
+    #     gql_transport=graphql_client,
+    # )
     # click.echo(f"{len(graphql_results)} repoes returned through grapqhl for {org_name}/{team_name}", err=True)
     # click.echo(f"{json.dumps(graphql_results, indent=2)}", err=True)
+    correctly_configured_repoes = list()
     for repo_data in (
         repo_data
         for repo_data
-        in graphql_results
-        if repo_data    # Remove empty results from GraphQL json output (happens sometimes)
+        in graphql_fetch_access_permission_for_repoes_for_team_in_org(
+            org_name=org_name,
+            team_name=team_name,
+            gql_transport=graphql_client,
+        )
+        # Remove empty results from GraphQL json output (happens sometimes)
+        # This bug was fixed by giving the Github PAT the repo:security_events permission
+        #  in addition to org:read permission. But keeping check just to avoid further issues.
+        if repo_data
     ):
-        # print(json.dumps(repo_data_list, indent=2), file=sys.stderr)
         repo_name = repo_data['node']['nameWithOwner']
 
-        if not repo_filter(repo_data['node'], repo_data['permission']):
+        if not repository_is_relevant_for_overview(repo_data['node'], repo_data['permission']):
             click.echo(f"{json.dumps(repo_data, indent=2)}", err=True)
             # Repository does not match criteria for filtering
             continue
 
-        correctly_configured_repoes[repo_name] = repo_data['node']
+        correctly_configured_repoes.append(repo_data['node'])
     # click.echo(f"\t{len(correctly_configured_repoes)} repoes returned to main", err=True)
     return correctly_configured_repoes
 
 
 
 def main(
-    teams: Iterable[str],
-    organizations: Iterable[str],
+    teams: typing.Iterable[str],
+    organizations: typing.Iterable[str],
     github_auth_token: str,
     make_org_folders: bool,
     make_team_files: bool,
     tee_output: bool,
     verbosity_level: int,
-    **kwargs: dict[Any, Any],
-
+    **kwargs: dict[typing.Any, typing.Any],
 ) -> None:
     github_api_client = RequestsHTTPTransport(
         verify=True,
@@ -139,7 +92,7 @@ def main(
             click.echo(f"\nNow traversing {org_name}!", err=True)
 
         if org_name not in global_results:
-            global_results[org_name] = dict()
+            global_results[org_name] = set()
         for team_name in teams:
             if verbosity_level >= 1:
                 click.echo(f"\tLooking for repoes {team_name} is ADMIN for in {org_name}...", err=True)
@@ -152,10 +105,17 @@ def main(
             if verbosity_level >= 2:
                 click.echo(f"\t\t{len(repoes_fetched)} found for {team_name} in {org_name}!", err=True)
 
+            repoes_fetched = set(
+                (
+                    hashable_dict(repo)
+                    for repo
+                    in repoes_fetched
+                )
+            )
             if team_name not in global_results:
-                global_results[team_name] = dict()
-            global_results[org_name].update(repoes_fetched)
-            global_results[team_name].update(repoes_fetched)
+                global_results[team_name] = set()
+            global_results[org_name] |= repoes_fetched
+            global_results[team_name] |= repoes_fetched
 
         if verbosity_level >= 1:
             click.echo(f"\t{len(global_results[org_name])} repositories found in {org_name}!", err=True)
@@ -164,7 +124,7 @@ def main(
     if make_org_folders or make_team_files:
         # Save to files if requested!
         write_markdown_files(
-            dataset=global_results,
+            repoes_dataset=global_results,
             make_org_folders=make_org_folders,
             make_team_files=make_team_files,
             organizations=organizations,
@@ -174,7 +134,7 @@ def main(
             # Job done! No output to stdout
             return
 
-    # print(f"{len(org_results)}", file=sys.stderr)
+    # click.echo(f"{len(org_results)}", err=True)
     if all(
         len(global_results[org_name]) == 0
         for org_name in organizations
@@ -188,5 +148,5 @@ def main(
     # click.echo(json.dumps(output_results, indent=2, default=serialize_sets), err=True)
 
     # Tabulate and write output
-    markdown_output = make_markdown_template(output_results)
+    markdown_output = generate_markdown_template(output_results)
     click.echo(markdown_output)
