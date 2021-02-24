@@ -55,15 +55,16 @@ def generate_markdown_template(
     # Make document intro
     doc_body = textwrap.dedent(f"""\
     # Helikopteroversikt
-
     Dette er en oversikt over Github repoer som ligger innunder organisasjonen(e); {orgs_string}
+
     Tabelloversikten lister repoer som:
-      - ikke er arkivert,
-      - og som har følgende Github team(s) i organisasjonen(e) over listet som `ADMIN` i repoet(\[1\]):
+      1. ikke er arkivert,
+      2. og som har følgende Github team(s) i organisasjonen(e) over listet som `ADMIN` i repoet(\[1\]):
     """)
-    doc_body += teams_list + '\n' * 2
+    doc_body += f"{teams_list}\n"
 
     # Add table
+    doc_body += '## Repositories\n'
     doc_body += make_markdown_table(repositories)
 
     # Add footer
