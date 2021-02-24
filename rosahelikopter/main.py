@@ -79,11 +79,11 @@ def main(
     )
 
     global_results = defaultdict(set)
-    for org_name in organizations:
+    for org_name in sorted(organizations):
         if verbosity_level >= 1:
             click.echo(f"\nNow traversing {org_name}!", err=True)
 
-        for team_name in teams:
+        for team_name in sorted(teams):
             if verbosity_level >= 1:
                 click.echo(f"\tLooking for repoes {team_name} is ADMIN for in {org_name}...", err=True)
 
@@ -130,11 +130,10 @@ def main(
         click.exit(1)
 
     output_results = list()
-    for org_name in sorted(organizations):
-        output_results += sorted(
-            global_results[org_name],
-            key=lambda repo: repo['nameWithOwner'],
-        )
+    map(
+        output_results.extend,
+        (global_results[org_name] for org_name in organizations),
+    )
     # click.echo(json.dumps(output_results, indent=2, default=serialize_sets), err=True)
 
     # Tabulate and write output

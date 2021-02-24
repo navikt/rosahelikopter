@@ -117,8 +117,8 @@ def cli(
     silence: int,
 ) -> dict:
     # Remove duplicates
-    organizations = sorted(set(organizations))
-    teams = sorted(set(teams))
+    organizations = list(set(organizations))
+    teams = list(set(teams))
 
     local_vars = {name: value for name, value in locals().items() if not name.startswith('_')}
     # Set`verbosity_level`

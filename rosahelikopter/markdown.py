@@ -23,7 +23,7 @@ def make_markdown_table(
         | :------: | :---------- |''')
 
     # Table 'body'/contents
-    for repo in repositories:
+    for repo in sorted(repositories, key=lambda r: r['nameWithOwner']):
         desc, name = repo['description'], repo['nameWithOwner']
         table_markdown_string += f"\n| [{name}]({repo['url']}) | {desc if desc else '**Mangler beskrivelse!**'} |"
 
@@ -70,6 +70,7 @@ def generate_markdown_template(
     doc_body += textwrap.dedent('\n\n\[1\]: <Github repo url> -> `Settings` fane -> `Access Management`.')
     return doc_body
 
+
 def write_markdown_files(
     repoes_dataset: dict[str, list[GIT_REPO]],
     organizations: typing.Iterable[str],
@@ -88,15 +89,12 @@ def write_markdown_files(
         if make_team_files:
             for team in teams:
                 # Filter out repoes depending on `make_org_folders` flag and sort them
-                file_specific_team_repoes = sorted(
-                    filter(
-                        lambda r: make_org_folders is False or (
-                            make_org_folders and r['nameWithOwner'].startswith(f"{org_name}/")
-                        ),
-                        repoes_dataset.get(team, tuple())
-                    ),
-                    key=lambda repo: repo['nameWithOwner'],
-                )
+                file_specific_team_repoes = [
+                    repo for repo in repoes_dataset[team]
+                    if make_org_folders is False or (
+                        make_org_folders and repo['nameWithOwner'].startswith(f"{org_name}/")
+                    )
+                ]
                 if len(file_specific_team_repoes) == 0:
                     continue
 
@@ -119,10 +117,7 @@ def write_markdown_files(
                 generate_markdown_template(
                     teams=teams,
                     orgs=(org_name, ) if make_org_folders is True else organizations,
-                    repositories=sorted(
-                        repoes_dataset[org_name],
-                        key=lambda repo: repo['nameWithOwner'],
-                    )
+                    repositories=repoes_dataset[org_name],
                 )
             )
     return
