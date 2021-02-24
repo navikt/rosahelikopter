@@ -39,7 +39,7 @@ def generate_markdown_template(
     orgs_string = ', '.join(
         (
             f"[{org}](https://github.com/{org})"
-            for org in orgs
+            for org in sorted(orgs)
         )
     )
 
@@ -48,7 +48,7 @@ def generate_markdown_template(
     teams_list = '\n'.join(
         (
             f"{indent}- @{team}"
-            for team in teams
+            for team in sorted(teams)
         )
     )
 
