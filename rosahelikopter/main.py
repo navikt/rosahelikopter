@@ -130,13 +130,12 @@ def main(
         click.exit(1)
 
     output_results = list()
-    map(
-        output_results.extend,
-        (global_results[org_name] for org_name in organizations),
-    )
+    for org_name in organizations:
+        output_results += global_results[org_name]
     # click.echo(json.dumps(output_results, indent=2, default=serialize_sets), err=True)
 
     # Tabulate and write output
+    # assert(len(list(output_results)) > 0)
     markdown_output = generate_markdown_template(
         repositories=output_results,
         orgs=organizations,
