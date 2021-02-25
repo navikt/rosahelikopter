@@ -44,7 +44,7 @@ def generate_markdown_template(
     )
 
     # List of teams used in intro template below
-    indent = ' ' * 4
+    indent = ' ' * 5
     teams_list = '\n'.join(
         (
             f"{indent}- @{team}"
@@ -59,9 +59,9 @@ def generate_markdown_template(
 
     Tabelloversikten lister repoer som:
       1. ikke er arkivert,
-      2. og som har følgende Github team(s) i organisasjonen(e) over listet som `ADMIN` i repoet(\[1\]):
+      2. og som har følgende Github team(s) i organisasjonen(e) over listet som `ADMIN` i repoet\[1\]:
     """)
-    doc_body += f"{teams_list}\n"
+    doc_body += f"{teams_list}\n\n"
 
     # Add table
     doc_body += '## Repositories\n'
