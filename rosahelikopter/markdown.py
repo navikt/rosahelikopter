@@ -68,7 +68,7 @@ def generate_markdown_template(
     doc_body += make_markdown_table(repositories)
 
     # Add footer
-    doc_body += textwrap.dedent('\n\n\[1\]: \<Github repo url> -> `Settings` fane -> `Access Management`.')
+    doc_body += textwrap.dedent('\n\n\\[1\\]: \\<Github repo url> -> `Settings` fane -> `Access Management`.')
     return doc_body
 
 

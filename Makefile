@@ -6,7 +6,7 @@ python_files := $(shell find . -type f -name '*.py')
 
 
 .PHONY: test
-test: pyproject.toml $(python_files)
+test: clean pyproject.toml $(python_files)
 	poetry run pytest
 
 .PHONY: sort_imports
@@ -19,3 +19,8 @@ sort_imports: pyproject.toml $(python_files)
 .PHONY: run
 run:
 	poetry run python rosahelikopter
+
+.PHONY: clean
+clean:
+	rm -rf $(shell find . -type d -name __pycache__)
+	rm -rf $(shell find . -type d -name .pytest_cache)

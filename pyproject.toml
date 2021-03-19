@@ -21,8 +21,6 @@ hypothesis = "^6.2.0"
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.coverage.run]
-command_line = '--module rosahelikopter'
 
 [tool.coverage.path]
 source = 'rosahelikopter/'
@@ -41,6 +39,7 @@ exclude_lines = [
     "if __name__ == '__main__':",
 ]
 precision = 2
+show_missing = true
 
 [tool.pytest.ini_options]
 python_files = [
@@ -62,6 +61,7 @@ norecursedirs = [
 ]
 filterwarnings = [
     "ignore:Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3, and in 3.10 it will stop working:DeprecationWarning",
+    'ignore:invalid escape sequence'
 ]
 python_functions = [
     'test_*',
@@ -70,8 +70,11 @@ python_functions = [
 ]
 addopts = [
     # Coverage options not covered by [tools.coverage.*] options
-    "--cov-report=term-missing:skip-covered",
-    "--cov-report=html",
+    '--cov-report=term-missing:skip-covered',
+    '--cov-report=html',
+
+    # Python module (read: as in `import` module) checked for coverage
+    '--cov=rosahelikopter',
 
     # hypothesis options
     # "--hypothesis-show-statistics",   # Un-comment for testing/debugging purposes
