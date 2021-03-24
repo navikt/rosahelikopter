@@ -27,7 +27,7 @@ def make_markdown_table(
         desc, name = repo['description'], repo['nameWithOwner']
         table_markdown_string += f"\n| [{name}]({repo['url']}) | {desc if desc else '**Mangler beskrivelse!**'} |"
 
-    return table_markdown_string
+    return table_markdown_string + '\n'
 
 
 def generate_markdown_template(
@@ -68,7 +68,10 @@ def generate_markdown_template(
     doc_body += make_markdown_table(repositories)
 
     # Add footer
-    doc_body += textwrap.dedent('\n\n\\[1\\]: \\<Github repo url> -> `Settings` fane -> `Access Management`.')
+    doc_body += textwrap.dedent('''\
+
+        \\[1\\]: \\<Github repo url> -> `Settings` fane -> `Access Management`.
+    ''')
     return doc_body
 
 
