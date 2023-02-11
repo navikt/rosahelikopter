@@ -12,7 +12,7 @@ gql = {version = "3.0.0a5", allow-prereleases = true, extras = ["requests"]}
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.2"
-ipython = "^7.31.1"
+ipython = "^8.10.0"
 isort = "^5.7.0"
 pytest-cov = "^2.11.1"
 hypothesis = "^6.2.0"
